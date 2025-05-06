@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Apex Feed</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f9f9f9;
+    }
+
+    header {
+      text-align: center;
+      padding: 40px 0;
+      background-color: #333;
+      color: white;
+    }
+
+    main {
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    .blog-post {
+      margin-bottom: 40px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #ccc;
+    }
+
+    .blog-post h2 {
+      margin-bottom: 10px;
+    }
+
+    .blog-post a {
+      color: #007acc;
+      text-decoration: none;
+    }
+
+    .blog-post a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Apex Feed</h1>
+  </header>
+
+  <main>
+    <div class="blog-post">
+      <h2>How to Set Up a GitHub Blog</h2>
+      <a href="blog1.html">Read this blog</a>
+    </div>
+
+    <div class="blog-post">
+      <h2>Customizing Your GitHub Pages Theme</h2>
+      <a href="blog2.html">Read this blog</a>
+    </div>
+
+    <div class="blog-post">
+      <h2>Writing Blogs with Markdown</h2>
+      <a href="blog3.html">Read this blog</a>
+    </div>
+  </main>
+
+</body>
+</html>
