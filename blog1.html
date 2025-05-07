@@ -1,37 +1,172 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Top 10 Productivity Tools for Developers in 2025</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Debugging Salesforce Governor Limit Errors</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background-color: #f7f9fb;
+      color: #2c3e50;
+      line-height: 1.6;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: #fff;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    h1 {
+      font-size: 28px;
+      color: #0064d2;
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      font-size: 22px;
+      margin-top: 40px;
+      color: #34495e;
+    }
+
+    h3 {
+      font-size: 18px;
+      margin-top: 30px;
+      color: #2c3e50;
+    }
+
+    p {
+      font-size: 15px;
+      margin: 12px 0;
+    }
+
+    code, pre {
+      font-family: 'Courier New', Courier, monospace;
+      background-color: #f0f3f6;
+      color: #333;
+      padding: 10px;
+      border-radius: 4px;
+      display: block;
+      overflow-x: auto;
+      margin-top: 10px;
+    }
+
+    ul {
+      margin: 15px 0;
+      padding-left: 20px;
+    }
+
+    ul li {
+      margin-bottom: 10px;
+    }
+
+    strong {
+      color: #222;
+    }
+
+    .code-label {
+      font-weight: bold;
+      margin-top: 20px;
+      color: #0064d2;
+    }
+
+    @media screen and (max-width: 600px) {
+      .container {
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+
+      h2 {
+        font-size: 20px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <article>
-    <h1>Top 10 Productivity Tools for Developers in 2025</h1>
-    <p><em>April 15, 2025</em></p>
+  <div class="container">
+    <h1>Debugging Salesforce Governor Limit Errors: Practical Fixes and Prevention Tips</h1>
 
-    <p>In the fast-paced world of software development, productivity isn’t just about writing more code—it's about working smarter. With the right tools, developers can streamline workflows, avoid distractions, and focus on what matters most: building great products.</p>
+    <p>Salesforce governor limits are rules that cap resource usage in Apex code to protect the multi-tenant environment. Because many customers share the same server resources, Salesforce enforces limits to prevent any single org’s code from hogging databases, memory, CPU, or network bandwidth.</p>
 
-    <h2>Why Productivity Matters</h2>
-    <p>Improving productivity isn't just good for business—it helps reduce burnout, improve code quality, and make daily tasks more enjoyable. Whether you're working remotely or in a team environment, staying organized and efficient can make or break your momentum.</p>
+    <p>For example, there’s a limit on how many queries or DML operations you can perform in one transaction. If a governor limit is exceeded, Salesforce throws a runtime exception and halts execution. These limits ensure fairness and stability, but they can frustrate developers when hit unexpectedly.</p>
 
-    <h3>Top Tools to Consider</h3>
+    <h2>Common Salesforce Governor Limit Errors</h2>
+
+    <h3>“Too Many SOQL Queries: 101”</h3>
+    <p>Salesforce allows at most 100 SOQL queries per synchronous transaction. This often occurs when a SOQL query is inside a loop. Move queries outside the loop and bulkify operations.</p>
+
+    <h3>“Too Many DML Statements: 151”</h3>
+    <p>There’s a 150 DML limit per Apex transaction. Avoid doing DML in loops. Instead, collect records in a list and commit them in bulk.</p>
+
+    <h3>“Apex CPU Time Limit Exceeded”</h3>
+    <p>The CPU time limit is 10,000 ms for synchronous Apex. Optimize logic, minimize recursion, and shift work to async jobs where possible.</p>
+
+    <h3>“Apex Heap Size Too Large”</h3>
+    <p>Heap size is limited to 6 MB (sync) and 12 MB (async). Query only necessary fields, use SOQL for loops, and batch large operations.</p>
+
+    <h3>“Too Many Callouts: 101”</h3>
+    <p>Only 100 callouts are allowed per transaction. Avoid callouts inside loops; use batch jobs or consolidate requests.</p>
+
+    <h2>Debugging Techniques for Governor Limit Errors</h2>
     <ul>
-      <li><strong>VS Code</strong>: A lightweight but powerful source-code editor with support for JavaScript, TypeScript, Python, and more. Extensions like GitLens, Prettier, and Live Server enhance your workflow.</li>
-      <li><strong>Notion</strong>: Ideal for organizing projects, managing documentation, and personal productivity. Its flexibility makes it suitable for solo developers and teams alike.</li>
-      <li><strong>Pomofocus</strong>: Based on the Pomodoro Technique, this tool helps you break your work into intervals to maintain focus and energy throughout the day.</li>
-      <li><strong>Linear</strong>: A modern issue-tracking and project management tool that’s fast, keyboard-first, and optimized for developer workflows.</li>
-      <li><strong>Raycast</strong>: A Mac-only productivity tool that lets you launch apps, run scripts, manage tasks, and control dev tools using simple keyboard commands.</li>
-      <li><strong>Figma</strong>: Though primarily a design tool, Figma helps developers collaborate with designers efficiently, reducing back-and-forth on UI requirements.</li>
-      <li><strong>GitHub Copilot</strong>: AI-powered code suggestions right inside your editor. Great for speeding up repetitive coding tasks and exploring new languages/frameworks.</li>
-      <li><strong>Slack</strong>: Still one of the best tools for team communication, especially when paired with integrations like GitHub and CI/CD alerts.</li>
-      <li><strong>RescueTime</strong>: Tracks how you spend your time on your computer to give you insights and help you cut distractions.</li>
-      <li><strong>Postman</strong>: A must-have for testing APIs quickly and collaborating on API development with team members.</li>
+      <li><strong>Check Debug Logs:</strong> Logs show resource usage and exceptions before the failure point.</li>
+      <li><strong>Developer Console Analysis:</strong> Use Execution Overview and Limits methods to monitor behavior.</li>
+      <li><strong>Checkpoints and Heap Inspector:</strong> Helpful for tracking memory use and object states.</li>
+      <li><strong>Isolate in Execute Anonymous:</strong> Run minimal examples to reproduce and isolate problems.</li>
     </ul>
 
-    <p>As we move further into 2025, developers are expected to juggle multiple tools and responsibilities. Mastering these productivity tools can lead to cleaner code, faster development cycles, and ultimately—happier devs.</p>
+    <h2>Examples of Violations and Fixes</h2>
 
-    <p><strong>Jay Prakash</strong><br>
-    Founder of Subnexa and a passionate developer focused on creating tools for the community.</p>
-  </article>
+    <p class="code-label">Example 1: SOQL Inside a Loop</p>
+    <p><strong>Violation:</strong></p>
+    <code>
+for (Contact c : contacts) {<br>
+&nbsp;&nbsp;Account acc = [SELECT Name, Industry FROM Account WHERE Id = :c.AccountId];<br>
+}
+    </code>
+
+    <p><strong>Fix:</strong> Move SOQL outside the loop and use a map:</p>
+    <code>
+Set&lt;Id&gt; acctIds = new Set&lt;Id&gt;();<br>
+for (Contact c : contacts) {<br>
+&nbsp;&nbsp;acctIds.add(c.AccountId);<br>
+}<br><br>
+
+Map&lt;Id, Account&gt; accounts = new Map&lt;Id, Account&gt;(<br>
+&nbsp;&nbsp;[SELECT Name, Industry FROM Account WHERE Id IN :acctIds]<br>
+);<br><br>
+
+for (Contact c : contacts) {<br>
+&nbsp;&nbsp;Account acc = accounts.get(c.AccountId);<br>
+}
+    </code>
+
+    <p class="code-label">Example 2: DML Inside a Loop</p>
+    <p><strong>Violation:</strong></p>
+    <code>
+for (Contact c : contacts) {<br>
+&nbsp;&nbsp;Task t = new Task(WhoId = c.Id, Subject = 'Follow Up');<br>
+&nbsp;&nbsp;insert t;<br>
+}
+    </code>
+
+    <p><strong>Fix:</strong> Batch the DML operations:</p>
+    <code>
+List&lt;Task&gt; tasks = new List&lt;Task&gt;();<br>
+for (Contact c : contacts) {<br>
+&nbsp;&nbsp;tasks.add(new Task(WhoId = c.Id, Subject = 'Follow Up'));<br>
+}<br>
+insert tasks;
+    </code>
+  </div>
 </body>
 </html>
