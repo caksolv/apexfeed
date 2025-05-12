@@ -3,169 +3,164 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Debugging Salesforce Governor Limit Errors</title>
-  <meta name="description" content=Learn how to identify and fix common Salesforce governor limit errors like SOQL query limits, DML limits, CPU timeouts, and heap size issues. Includes debugging tips and Apex code examples.>
+  <title>Salesforce Governor Limit Errors Debugging</title>
   <style>
     body {
-      font-family: 'Segoe UI', Tahoma, sans-serif;
-      background-color: #f7f9fb;
-      color: #2c3e50;
-      line-height: 1.6;
+      font-family: Arial, sans-serif;
       margin: 0;
-      padding: 20px;
-    }
-
-    .container {
-      max-width: 900px;
-      margin: auto;
-      background: #fff;
-      padding: 40px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-    }
-
-    h1 {
-      font-size: 28px;
-      color: #0064d2;
-      margin-bottom: 20px;
-    }
-
-    h2 {
-      font-size: 22px;
-      margin-top: 40px;
-      color: #34495e;
-    }
-
-    h3 {
-      font-size: 18px;
-      margin-top: 30px;
-      color: #2c3e50;
-    }
-
-    p {
-      font-size: 15px;
-      margin: 12px 0;
-    }
-
-    code, pre {
-      font-family: 'Courier New', Courier, monospace;
-      background-color: #f0f3f6;
+      padding: 0;
+      line-height: 1.6;
+      background-color: #f5f5f5;
       color: #333;
-      padding: 10px;
-      border-radius: 4px;
-      display: block;
-      overflow-x: auto;
-      margin-top: 10px;
     }
-
+    header {
+      background-color: #0070c0;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+    }
+    section {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background-color: white;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    h2, h3 {
+      color: #0070c0;
+    }
+    pre {
+      background: #f4f4f4;
+      padding: 10px;
+      overflow-x: auto;
+      border-left: 4px solid #0070c0;
+      white-space: pre-wrap;
+    }
     ul {
-      margin: 15px 0;
       padding-left: 20px;
     }
-
-    ul li {
-      margin-bottom: 10px;
-    }
-
-    strong {
-      color: #222;
-    }
-
-    .code-label {
-      font-weight: bold;
-      margin-top: 20px;
-      color: #0064d2;
-    }
-
-    @media screen and (max-width: 600px) {
-      .container {
-        padding: 20px;
-      }
-
-      h1 {
-        font-size: 24px;
-      }
-
-      h2 {
-        font-size: 20px;
-      }
+    code {
+      background-color: #f4f4f4;
+      padding: 2px 4px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1><strong>Debugging Salesforce Governor Limit Errors: Practical Fixes and Prevention Tips</strong></h1>
-<p style="text-align: justify;"><span style="font-weight: 400;">Salesforce governor limits are rules that cap resource usage in Apex code to protect the multi-tenant environment. Because many customers share the same server resources, Salesforce enforces limits to prevent any single org&rsquo;s code from hogging databases, memory, CPU, or network bandwidth. </span><span style="font-weight: 400;"><br /></span><span style="font-weight: 400;"><br /></span><span style="font-weight: 400;">For example, there&rsquo;s a limit on how many queries or DML operations you can perform in one transaction. If a governor limit is exceeded, Salesforce immediately throws a runtime exception that cannot be caught &ndash; the execution halts. These limits ensure fairness and stability, but they can frustrate developers when hit unexpectedly. Below, we&rsquo;ll discuss common governor limit errors and how to debug and fix them.</span></p>
-<h2 style="text-align: justify;"><span style="font-weight: 400;">Common Salesforce Governor Limit Errors</span></h2>
-<p style="text-align: justify;"><span style="font-weight: 400;">&ldquo;Too Many SOQL Queries: 101&rdquo; (SOQL Query Limit)</span><strong><br /></strong><span style="font-weight: 400;">Salesforce allows at most 100 SOQL queries per synchronous Apex transaction. Exceeding this causes a System.LimitException. This often happens when a SOQL query is placed inside a loop, causing each iteration to run a query. The solution is to refactor the code to bulkify queries, i.e., move SOQL outside loops and query once for all needed data.</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">&ldquo;Too Many DML Statements: 151&rdquo; (DML Statements Limit)</span><strong><br /></strong><span style="font-weight: 400;">Similar to queries, there&rsquo;s a limit of 150 DML operations (inserts/updates/deletes) per Apex transaction. This typically occurs by doing DML inside a loop. The fix is to use collections for DML &ndash; accumulate records in a list and perform one bulk insert/update at the end.</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">&ldquo;Apex CPU time limit exceeded&rdquo; (CPU Time Limit)</span><strong><br /></strong><span style="font-weight: 400;"> Salesforce limits the CPU time a transaction can use. In a synchronous context, the limit is 10,000 milliseconds. If your Apex code runs longer, you&rsquo;ll get this error. Common causes include large loops, inefficient algorithms, or recursive logic. To avoid this, optimize your code, reduce loop iterations, or offload processing to asynchronous jobs.</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">&ldquo;Apex heap size too large&rdquo; (Heap Size Limit)</span><span style="font-weight: 400;"><br /></span><span style="font-weight: 400;"> Salesforce enforces a heap limit of 6 MB for synchronous and 12 MB for asynchronous transactions. If your code accumulates too much data in memory, you&rsquo;ll hit this error. Prevent this by querying only needed fields, processing in small batches, and using SOQL for loops or Batch Apex.</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">&ldquo;Too many callouts: 101&rdquo; (Callout Limit)</span><span style="font-weight: 400;"><br /></span><span style="font-weight: 400;"> A single transaction can perform up to 100 external callouts. This error often occurs when making callouts inside a loop. Resolve this by batching records using Batch Apex, or aggregating data for fewer callouts if the external system supports bulk input.</span></p>
-<h2 style="text-align: justify;"><strong>Debugging Techniques for Governor Limit Errors</strong></h2>
-<p style="text-align: justify;"><span style="font-weight: 400;">When you encounter a governor limit error, identifying the root cause is crucial. Here are some practical debugging techniques:</span></p>
-<ul style="text-align: justify;">
-<li style="font-weight: 400;"><strong>Check Debug Logs:</strong><span style="font-weight: 400;"> Look for lines showing resource usage and exception stack traces. Logs indicate what was running before the error occurred.</span><span style="font-weight: 400;"><br /><br /></span></li>
-<li style="font-weight: 400;"><strong>Developer Console Analysis:</strong><span style="font-weight: 400;"> Use Execution Overview to track limits and analyze SOQL, DML, and CPU usage. Insert System.debug statements with Limits methods to monitor real-time consumption.</span><span style="font-weight: 400;"><br /><br /></span></li>
-<li style="font-weight: 400;"><strong>Checkpoints and Heap Inspector:</strong><span style="font-weight: 400;"> Set checkpoints to view heap size and object states. This helps with diagnosing memory-related errors.</span><span style="font-weight: 400;"><br /><br /></span></li>
-<li style="font-weight: 400;"><strong>Isolate in Execute Anonymous:</strong><span style="font-weight: 400;"> Reproduce logic in a controlled script to pinpoint the source of the error without noise from other processes.</span><span style="font-weight: 400;"><br /><br /></span></li>
-</ul>
-<h2 style="text-align: justify;"><strong>Examples of Violations and Fixes</strong></h2>
-<p style="text-align: justify;"><span style="font-weight: 400;">Let&rsquo;s look at two classic examples of governor limit violations in Apex, and how to fix them with better coding practices.</span></p>
-<p style="text-align: justify;"><strong>Example 1: SOQL Inside a Loop</strong></p>
-<p style="text-align: justify;"><strong><em>Violation:</em></strong> <span style="font-weight: 400;">The code below performs a SOQL query inside a loop. If </span><span style="font-weight: 400;">contacts</span><span style="font-weight: 400;"> contain more than 100 records, this will run a query for each contact and hit the SOQL limit.</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">// BAD Practice: SOQL query inside a loop</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">for (Contact c : contacts) {</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">&nbsp;&nbsp;&nbsp;&nbsp;// Querying related Account for each contact (inefficient!)</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">&nbsp;&nbsp;&nbsp;&nbsp;Account acc = [SELECT Name, Industry FROM Account WHERE Id = :c.AccountId];</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">&nbsp;&nbsp;&nbsp;&nbsp;// ... (do something with acc)</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">}</span></p>
-<p style="text-align: justify;">&nbsp;</p>
-<p style="text-align: justify;"><strong><em>Fix:</em></strong> <span style="font-weight: 400;">On a large data set, the above will throw &ldquo;Too many SOQL queries: 101&rdquo; as soon as the 101st query executes. The fix is to bulkify the code by moving the query outside the loop, querying all needed Accounts in one go, and using a collection (map) for lookup:</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">// GOOD Practice: Bulkified query outside the loop</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">// Gather all AccountIds from contacts</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">Set&lt;Id&gt; acctIds = new Set&lt;Id&gt;();</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">for (Contact c : contacts) {</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">&nbsp;&nbsp;&nbsp;&nbsp;acctIds.add(c.AccountId);</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">}</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">// Query all relevant Accounts in one query</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">Map&lt;Id, Account&gt; accounts = new Map&lt;Id, Account&gt;(</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">&nbsp;&nbsp;&nbsp;&nbsp;[SELECT Name, Industry FROM Account WHERE Id IN :acctIds]</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">);</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">// Loop through contacts and use the map to get corresponding Account</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">for (Contact c : contacts) {</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">&nbsp;&nbsp;&nbsp;&nbsp;Account acc = accounts.get(c.AccountId);</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">&nbsp;&nbsp;&nbsp;&nbsp;// ... (do something with acc)</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">}</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">Now, regardless of list size, this performs only one SOQL query for all accounts, avoiding the governor limit. The loop uses the in-memory map for lookups instead of querying repeatedly. Always ensure your queries are outside iterative loops in this manner.</span></p>
-<p style="text-align: justify;"><strong>Example 2: DML Inside a Loop (DML Limit Violation)</strong><strong><br /></strong><strong><em>Violation:</em></strong><span style="font-weight: 400;"> This code creates a new Task for each contact and inserts it inside the loop:</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">// BAD Practice: DML inside a loop</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">for (Contact c : contacts) {</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">&nbsp;&nbsp;&nbsp;&nbsp;Task t = new Task(WhoId = c.Id, Subject = 'Follow Up');</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">&nbsp;&nbsp;&nbsp;&nbsp;insert t;&nbsp; // DML operation in loop</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">}</span></p>
-<p style="text-align: justify;">&nbsp;</p>
-<p style="text-align: justify;"><strong><em>Fix:</em></strong><span style="font-weight: 400;"> If </span><span style="font-weight: 400;">contacts</span><span style="font-weight: 400;"> has over 150 records, the 151st insert will hit the DML limit and throw &ldquo;Too many DML statements: 151&rdquo;. The best practice is to batch these DML operations by using a list:</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">// GOOD Practice: Bulk DML with a list</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">List&lt;Task&gt; tasksToInsert = new List&lt;Task&gt;();</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">for (Contact c : contacts) {</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">&nbsp;&nbsp;&nbsp;&nbsp;Task t = new Task(WhoId = c.Id, Subject = 'Follow Up');</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">&nbsp;&nbsp;&nbsp;&nbsp;tasksToInsert.add(t);&nbsp; // add to list instead of inserting immediately</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">}</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">if (!tasksToInsert.isEmpty()) {</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">&nbsp;&nbsp;&nbsp;&nbsp;insert tasksToInsert;&nbsp; // single bulk DML for all tasks</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">}</span></p>
-<p style="text-align: justify;"><span style="font-weight: 400;">Here, no matter how many Task records we need to create, we do just one </span><span style="font-weight: 400;">insert</span><span style="font-weight: 400;"> operation for all of them. This counts as one DML statement against the limit. Not only does this avoid the governor error, but it&rsquo;s also more efficient. The same pattern should be applied for updates and deletes &ndash; use lists and one bulk operation instead of many singular operations.</span></p>
-<h2 style="text-align: justify;"><span style="font-weight: 400;">Prevention Best Practices for Governor Limits</span></h2>
-<p style="text-align: justify;"><span style="font-weight: 400;">The best way to deal with governor limits is to avoid hitting them in the first place. Salesforce developers should follow these best practices to write governor-friendly Apex code:</span></p>
-<ul style="text-align: justify;">
-<li style="font-weight: 400;"><strong>Bulkify Your Code:</strong><span style="font-weight: 400;"> Always design your code (especially triggers) to handle multiple records at once, rather than one at a time. Bulkification means combining operations: for example, processing records in lists and using one query or DML for many records. Bulkified code processes 200 records as easily as 1 record, and stays within limits by minimizing the number of queries/DML calls.</span><span style="font-weight: 400;"><br /><br /></span></li>
-<li style="font-weight: 400;"><strong>No SOQL/DML in Loops:</strong><span style="font-weight: 400;"> Never put a database query or DML statement inside a </span><span style="font-weight: 400;">for</span><span style="font-weight: 400;"> loop. This is the most common cause of governor limit errors (as shown above). Instead, gather all needed IDs or data first, then perform a single query or DML outside the loop. This simple rule prevents the vast majority of SOQL 101 and DML limit issues.</span><span style="font-weight: 400;"><br /><br /></span></li>
-<li style="font-weight: 400;"><strong>Optimize SOQL Queries:</strong><span style="font-weight: 400;"> Make your queries selective and efficient. Retrieve only the fields you actually need and filter records by specific criteria (use WHERE clauses) to avoid pulling large volumes of data. Efficient queries reduce CPU time and heap usage. Also consider using indexed fields or skinny tables for large data volumes so queries run faster and return fewer rows, helping stay under row and CPU limits.</span><span style="font-weight: 400;"><br /><br /></span></li>
-<li style="font-weight: 400;"><strong>Use Collections and Maps:</strong><span style="font-weight: 400;"> Leverage Apex collections (Lists, Maps, Sets) to handle data in-memory and in bulk. As shown, adding objects to a list and doing one bulk DML is far better than many single inserts. Use maps to avoid repetitive queries &ndash; e.g., query related records once into a Map by Id for quick lookup instead of querying inside loops.</span><span style="font-weight: 400;"><br /><br /></span></li>
-<li style="font-weight: 400;"><strong>Use Asynchronous Processing:</strong><span style="font-weight: 400;"> If a process is hitting limits in a synchronous context (e.g., a trigger running long or doing many callouts), offload it to asynchronous Apex. Future methods, Queueable, or Batch Apex run in separate transactions with independent limits, and some limits are higher for async (e.g., 200 SOQL queries in Batch vs 100 sync, and 60,000ms CPU in Batch). For example, you might move callouts to a Queueable job or use Batch Apex to handle large data operations in chunks, thereby avoiding one huge transaction that breaks limits.</span><span style="font-weight: 400;"><br /><br /></span></li>
-<li style="font-weight: 400;"><strong>Monitor and Test at Scale:</strong><span style="font-weight: 400;"> Regularly review debug logs or use the Salesforce </span><strong>Limits</strong><span style="font-weight: 400;"> Apex methods to monitor resource usage during testing. Write test methods that insert, update, or query many records to simulate bulk scenarios, ensuring your code still runs within limits. This proactive approach can catch inefficient code before it hits production. Using static code analysis tools (like PMD) can also automatically flag patterns like queries in loops, helping you fix them early</span></li>
-</ul>
-<p style="text-align: justify;"><span style="font-weight: 400;">By following these practices, Apex developers can prevent most governor limit problems. Always think about scale, and design your code with the assumption that it might process large data volumes in real-world scenarios. This helps you stay within limits and ensures smooth, efficient Salesforce performance.</span></p>
+  <header>
+    Debugging Salesforce Governor Limit Errors: Practical Fixes and Prevention Tips
+  </header>
+  
+  <section>
+    <h2>Common Salesforce Governor Limit Errors</h2>
+    <p>Salesforce governor limits are rules that cap resource usage in Apex code to protect the multi-tenant environment...</p>
+
+    <h3>"Too Many SOQL Queries: 101" (SOQL Query Limit)</h3>
+    <p>Salesforce allows at most 100 SOQL queries per synchronous Apex transaction...</p>
+
+    <h3>"Too Many DML Statements: 151" (DML Statements Limit)</h3>
+    <p>Similar to queries, there’s a limit of 150 DML operations (inserts/updates/deletes) per Apex transaction...</p>
+
+    <h3>"Apex CPU time limit exceeded" (CPU Time Limit)</h3>
+    <p>Salesforce limits the CPU time a transaction can use...</p>
+
+    <h3>"Apex heap size too large" (Heap Size Limit)</h3>
+    <p>Salesforce enforces a heap limit of 6 MB for synchronous and 12 MB for asynchronous transactions...</p>
+
+    <h3>"Too many callouts: 101" (Callout Limit)</h3>
+    <p>A single transaction can perform up to 100 external callouts...</p>
+
+    <h2>Debugging Techniques for Governor Limit Errors</h2>
+    <p>When you encounter a governor limit error, identifying the root cause is crucial...</p>
+
+    <h3>Check Debug Logs</h3>
+    <p>Look for lines showing resource usage and exception stack traces...</p>
+
+    <h3>Developer Console Analysis</h3>
+    <p>Use Execution Overview to track limits and analyze SOQL, DML, and CPU usage...</p>
+
+    <h3>Checkpoints and Heap Inspector</h3>
+    <p>Set checkpoints to view heap size and object states...</p>
+
+    <h3>Isolate in Execute Anonymous</h3>
+    <p>Reproduce logic in a controlled script to pinpoint the source of the error...</p>
+
+    <h2>Examples of Violations and Fixes</h2>
+    <h3>Example 1: SOQL Inside a Loop</h3>
+    <p>Violation: The code below performs a SOQL query inside a loop...</p>
+<p>If you encounter recurring governor limit errors, don&apos;t hesitate to <a href="https://www.ksolves.com/salesforce-support-services" target="_blank" rel="noopener noreferrer">contact Salesforce support</a> for advanced troubleshooting and advice on scaling your code efficiently.</p>
+    <pre><code>
+// BAD Practice: SOQL query inside a loop
+for (Contact c : contacts) {
+    Account acc = [SELECT Name, Industry FROM Account WHERE Id = :c.AccountId];
+    // ... (do something with acc)
+}
+    </code></pre>
+
+    <h3>Fix</h3>
+    <p>On a large data set, the above will throw “Too many SOQL queries: 101”. The fix is to bulkify the code...</p>
+
+    <pre><code>
+// GOOD Practice: Bulkified query outside the loop
+Set<Id> acctIds = new Set<Id>();
+for (Contact c : contacts) {
+    acctIds.add(c.AccountId);
+}
+Map<Id, Account> accounts = new Map<Id, Account>([SELECT Name, Industry FROM Account WHERE Id IN :acctIds]);
+for (Contact c : contacts) {
+    Account acc = accounts.get(c.AccountId);
+    // ... (do something with acc)
+}
+    </code></pre>
+
+    <h3>Example 2: DML Inside a Loop (DML Limit Violation)</h3>
+    <p>Violation: This code creates a new Task for each contact and inserts it inside the loop...</p>
+
+    <pre><code>
+// BAD Practice: DML inside a loop
+for (Contact c : contacts) {
+    Task t = new Task(WhoId = c.Id, Subject = 'Follow Up');
+    insert t;
+}
+    </code></pre>
+
+    <h3>Fix</h3>
+    <p>If contacts has over 150 records, the 151st insert will hit the DML limit and throw “Too many DML statements: 151”...</p>
+
+    <pre><code>
+// GOOD Practice: Bulk DML with a list
+List<Task> tasksToInsert = new List<Task>();
+for (Contact c : contacts) {
+    Task t = new Task(WhoId = c.Id, Subject = 'Follow Up');
+    tasksToInsert.add(t);
+}
+if (!tasksToInsert.isEmpty()) {
+    insert tasksToInsert;  // single bulk DML for all tasks
+}
+    </code></pre>
+
+    <h2>Prevention Best Practices for Governor Limits</h2>
+    <p>The best way to deal with governor limits is to avoid hitting them in the first place...</p>
+
+    <h3>Bulkify Your Code</h3>
+    <p>Always design your code (especially triggers) to handle multiple records at once...</p>
+
+    <h3>No SOQL/DML in Loops</h3>
+    <p>Never put a database query or DML statement inside a for loop...</p>
+
+    <h3>Optimize SOQL Queries</h3>
+    <p>Make your queries selective and efficient...</p>
+
+    <h3>Use Collections and Maps</h3>
+    <p>Leverage Apex collections (Lists, Maps, Sets) to handle data in-memory and in bulk...</p>
+
+    <h3>Use Asynchronous Processing</h3>
+    <p>If a process is hitting limits in a synchronous context, offload it to asynchronous Apex...</p>
+
+    <h3>Monitor and Test at Scale</h3>
+    <p>Regularly review debug logs or use the Salesforce Limits Apex methods to monitor resource usage...</p>
+  </section>
+  <p style="text-align: center;"><strong>Read more at</strong> - <a href="https://caksolv.github.io/apexfeed/" target="_blank">https://caksolv.github.io/apexfeed/</a></p>
 </body>
 </html>
